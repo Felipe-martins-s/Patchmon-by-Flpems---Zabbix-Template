@@ -216,7 +216,7 @@ zabbix_export:
                 - uuid: 701940b491e24c9aa71d083d9ac66388
                   expression: 'last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20'
                   name: '{#PM_HOSTNAME} has more than 20 pending updates'
-                  priority: HIGH
+                  priority: AVERAGE
                   dependencies:
                     - name: '{#PM_HOSTNAME} has more than 10 pending security updates'
                       expression: 'last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10'
@@ -296,7 +296,7 @@ zabbix_export:
                 - uuid: b9b0cd24cd124dcc9638b724f7efedb6
                   expression: 'last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10'
                   name: '{#PM_HOSTNAME} has more than 10 pending security updates'
-                  priority: DISASTER
+                  priority: HIGH
             - uuid: a1af163484c046bfb14dbfe104171084
               name: 'Host {#PM_HOSTNAME} SELinux Status'
               type: HTTP_AGENT

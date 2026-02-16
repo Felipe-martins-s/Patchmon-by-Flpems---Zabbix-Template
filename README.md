@@ -140,12 +140,12 @@ All prototypes run with default `1h` interval and `30s` timeout, using Basic Aut
 
 ## Triggers (prototypes)
 
-- **Security updates (DISASTER)**
+- **Security updates (HIGH)**
   - Name: `{#PM_HOSTNAME} has more than 10 pending security updates`
   - Expression:
     - `last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10`
 
-- **Total updates (HIGH)**
+- **Total updates (AVERAGE)**
   - Name: `{#PM_HOSTNAME} has more than 20 pending updates`
   - Expression:
     - `last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20`
@@ -331,12 +331,12 @@ Todos com intervalo padrão `1h` e `timeout 30s`, usando Basic Auth com `{$PM_KE
 
 ## Triggers (protótipos)
 
-- **Security updates (DISASTER)**
+- **Security updates (HIGH)**
   - Nome: `{#PM_HOSTNAME} has more than 10 pending security updates`
   - Expressão:
     - `last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10`
 
-- **Total updates (HIGH)**
+- **Total updates (AVERAGE)**
   - Nome: `{#PM_HOSTNAME} has more than 20 pending updates`
   - Expressão:
     - `last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20`

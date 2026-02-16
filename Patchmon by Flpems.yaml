@@ -8,6 +8,19 @@ zabbix_export:
       template: 'Patchmon by Flpems'
       name: 'Patchmon by Flpems'
       description: |
+        English: PatchMon integration via HTTP Agent + LLD (Zabbix 7.4).
+        
+        Collects hosts list from {$PM_URL}/api/v1/api/hosts (Basic Auth: {$PM_KEY}/{$PM_SECRET}) and dynamically discovers each host (LLD) using {#PM_HOSTID}/{#PM_HOSTNAME}/{#PM_IP}/{#PM_FRIENDLY}/{#PM_GROUP}.
+        
+        Per-host items (1h): OS/version, kernel, SELinux, reboot pending, installed packages, repos, pending updates (total and security) and Docker metrics (enabled/containers/networks/volumes).
+        
+        Triggers:
+        - DISASTER: >=10 pending security updates
+        - HIGH: >=20 pending updates (depends on the security trigger)
+        
+        Required macros: {$PM_URL}, {$PM_KEY}, {$PM_SECRET}.
+        
+        Português Brasil:
         Integração PatchMon via HTTP Agent + LLD (Zabbix 7.4).
         
         Coleta lista de hosts em {$PM_URL}/api/v1/api/hosts (Basic Auth: {$PM_KEY}/{$PM_SECRET}) e descobre dinamicamente cada host (LLD) usando {#PM_HOSTID}/{#PM_HOSTNAME}/{#PM_IP}/{#PM_FRIENDLY}/{#PM_GROUP}.

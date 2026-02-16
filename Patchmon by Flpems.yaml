@@ -15,8 +15,8 @@ zabbix_export:
         Per-host items (1h): OS/version, kernel, SELinux, reboot pending, installed packages, repos, pending updates (total and security) and Docker metrics (enabled/containers/networks/volumes).
         
         Triggers:
-        - DISASTER: >=10 pending security updates
-        - HIGH: >=20 pending updates (depends on the security trigger)
+        - HIGH: >=10 pending security updates
+        - AVERAGE: >=20 pending updates (depends on the security trigger)
         
         Required macros: {$PM_URL}, {$PM_KEY}, {$PM_SECRET}.
         
@@ -28,8 +28,8 @@ zabbix_export:
         Itens por host (1h): OS/versão, kernel, SELinux, reboot pendente, pacotes instalados, repos, updates pendentes (total e security) e métricas Docker (enabled/containers/networks/volumes).
         
         Triggers:
-        - DISASTER: >=10 security updates pendentes
-        - HIGH: >=20 updates pendentes (depende do trigger de security)
+        - HIGH: >=10 security updates pendentes
+        - AVERAGE: >=20 updates pendentes (depende do trigger de security)
         
         Requer macros: {$PM_URL}, {$PM_KEY}, {$PM_SECRET}.
       groups:

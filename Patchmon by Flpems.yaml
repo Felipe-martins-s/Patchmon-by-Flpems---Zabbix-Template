@@ -1,0 +1,351 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 3549a5f2b4d24a82ad3f828a62c17463
+      name: SecurityMonitoring
+  templates:
+    - uuid: 00f6792fe58743debbda208f4a9c760a
+      template: 'Patchmon by Flpems'
+      name: 'Patchmon by Flpems'
+      description: |
+        Integração PatchMon via HTTP Agent + LLD (Zabbix 7.4).
+        
+        Coleta lista de hosts em {$PM_URL}/api/v1/api/hosts (Basic Auth: {$PM_KEY}/{$PM_SECRET}) e descobre dinamicamente cada host (LLD) usando {#PM_HOSTID}/{#PM_HOSTNAME}/{#PM_IP}/{#PM_FRIENDLY}/{#PM_GROUP}.
+        
+        Itens por host (1h): OS/versão, kernel, SELinux, reboot pendente, pacotes instalados, repos, updates pendentes (total e security) e métricas Docker (enabled/containers/networks/volumes).
+        
+        Triggers:
+        - DISASTER: >=10 security updates pendentes
+        - HIGH: >=20 updates pendentes (depende do trigger de security)
+        
+        Requer macros: {$PM_URL}, {$PM_KEY}, {$PM_SECRET}.
+      groups:
+        - name: SecurityMonitoring
+      items:
+        - uuid: aa9cde6e21a641c8bf9e277efd074127
+          name: 'PatchMon - Hosts list (raw)'
+          type: HTTP_AGENT
+          key: patchmon.hosts.raw
+          delay: 1h
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$PM_KEY}'
+          password: '{$PM_SECRET}'
+          url: '{$PM_URL}/api/v1/api/hosts'
+      discovery_rules:
+        - uuid: 7cb691edb6f44a6b9ab0cd71c0b595f3
+          name: 'PatchMon - Host discovery'
+          type: DEPENDENT
+          key: patchmon.host.discovery
+          item_prototypes:
+            - uuid: 0189d641d2844d0e9e3acf5f4e5ba711
+              name: 'Host {#PM_HOSTNAME} Docker Container Count'
+              type: HTTP_AGENT
+              key: 'patchmon.host.dckcnt[{#PM_HOSTID}]'
+              delay: 1h
+              trends: '0'
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.integrations.docker.containers_count
+                  error_handler: CUSTOM_ERROR
+                  error_handler_params: 'Docker integration not detected'
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations'
+              tags:
+                - tag: Info
+                  value: 'Docker Containers Count'
+                - tag: Source
+                  value: Patchmon
+            - uuid: e8a097bbc150426b88d10d21a8519309
+              name: 'Host {#PM_HOSTNAME} Docker Integration Status'
+              type: HTTP_AGENT
+              key: 'patchmon.host.dckint[{#PM_HOSTID}]'
+              delay: 1h
+              value_type: TEXT
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.integrations.docker.enabled
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations'
+              tags:
+                - tag: Info
+                  value: 'Docker Integration Status'
+                - tag: Source
+                  value: Patchmon
+            - uuid: 1231e47566fa433e87291c3522ff9610
+              name: 'Host {#PM_HOSTNAME} Docker Networks Count'
+              type: HTTP_AGENT
+              key: 'patchmon.host.dckntwcnt[{#PM_HOSTID}]'
+              delay: 1h
+              trends: '0'
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.integrations.docker.networks_count
+                  error_handler: CUSTOM_ERROR
+                  error_handler_params: 'Docker integration not detected'
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations'
+              tags:
+                - tag: Info
+                  value: 'Docker Networks Count'
+                - tag: Source
+                  value: Patchmon
+            - uuid: 8fc4a50b5dad42e7be5703f4e2935e30
+              name: 'Host {#PM_HOSTNAME} Docker Volumes Count'
+              type: HTTP_AGENT
+              key: 'patchmon.host.dckvlcnt[{#PM_HOSTID}]'
+              delay: 1h
+              trends: '0'
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.integrations.docker.volumes_count
+                  error_handler: CUSTOM_ERROR
+                  error_handler_params: 'Docker integration not detected'
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations'
+              tags:
+                - tag: Info
+                  value: 'Docker Volumes Count'
+                - tag: Source
+                  value: Patchmon
+            - uuid: 347e144224e04e20bf285310789e46e1
+              name: 'Host {#PM_HOSTNAME} System OS/Version'
+              type: HTTP_AGENT
+              key: 'patchmon.host.info[{#PM_HOSTID}]'
+              delay: 1h
+              value_type: TEXT
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var data = JSON.parse(value);
+                      
+                      var os = data.os_type ? data.os_type : "Unknown OS";
+                      var ver = data.os_version ? data.os_version : "";
+                      
+                      return os + (ver ? " " + ver : "");
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info'
+              tags:
+                - tag: Info
+                  value: 'OS Version'
+                - tag: Source
+                  value: Patchmon
+            - uuid: bcc874583530456b9a81845b8c8448c9
+              name: 'Host {#PM_HOSTNAME} Kernel Version'
+              type: HTTP_AGENT
+              key: 'patchmon.host.krnversion[{#PM_HOSTID}]'
+              delay: 1h
+              value_type: TEXT
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.kernel_version
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system'
+              tags:
+                - tag: Info
+                  value: 'Kernel Version'
+                - tag: Source
+                  value: Patchmon
+            - uuid: 0803ed8f881142ef88182f9b043ddfd7
+              name: 'Host {#PM_HOSTNAME} Pending Updates: Total'
+              type: HTTP_AGENT
+              key: 'patchmon.host.pending_updates[{#PM_HOSTID}]'
+              delay: 1h
+              trends: '0'
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.outdated_packages
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats'
+              tags:
+                - tag: Info
+                  value: Updates
+                - tag: 'Pending Updates'
+                  value: Total
+                - tag: Source
+                  value: Patchmon
+              trigger_prototypes:
+                - uuid: 701940b491e24c9aa71d083d9ac66388
+                  expression: 'last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20'
+                  name: '{#PM_HOSTNAME} has more than 20 pending updates'
+                  priority: HIGH
+                  dependencies:
+                    - name: '{#PM_HOSTNAME} has more than 10 pending security updates'
+                      expression: 'last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10'
+            - uuid: d2f183eb34ec40079da461775fe0875f
+              name: 'Host {#PM_HOSTNAME} Reboot Status'
+              type: HTTP_AGENT
+              key: 'patchmon.host.rbtstatus[{#PM_HOSTID}]'
+              delay: 1h
+              value_type: TEXT
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.needs_reboot
+                - type: STR_REPLACE
+                  parameters:
+                    - 'false'
+                    - 'No Reboot pending'
+                - type: STR_REPLACE
+                  parameters:
+                    - 'true'
+                    - 'Reboot pending'
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system'
+              tags:
+                - tag: Info
+                  value: 'Reboot Status'
+                - tag: Source
+                  value: Patchmon
+            - uuid: a54c6676f51148ecac20457fd7d80a4c
+              name: 'Host {#PM_HOSTNAME} Total Repos'
+              type: HTTP_AGENT
+              key: 'patchmon.host.repos[{#PM_HOSTID}]'
+              delay: 1h
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.total_repos
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats'
+              tags:
+                - tag: Info
+                  value: 'Total Repos'
+                - tag: Source
+                  value: Patchmon
+            - uuid: 1f9bd5dfc38b4cabb203b562a84ec5b1
+              name: 'Host {#PM_HOSTNAME} Pending Updates: Security'
+              type: HTTP_AGENT
+              key: 'patchmon.host.sec_updates[{#PM_HOSTID}]'
+              delay: 1h
+              trends: '0'
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.security_updates
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats'
+              tags:
+                - tag: Info
+                  value: Updates
+                - tag: 'Pending Updates'
+                  value: Security
+                - tag: Source
+                  value: Patchmon
+              trigger_prototypes:
+                - uuid: b9b0cd24cd124dcc9638b724f7efedb6
+                  expression: 'last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10'
+                  name: '{#PM_HOSTNAME} has more than 10 pending security updates'
+                  priority: DISASTER
+            - uuid: a1af163484c046bfb14dbfe104171084
+              name: 'Host {#PM_HOSTNAME} SELinux Status'
+              type: HTTP_AGENT
+              key: 'patchmon.host.selstatus[{#PM_HOSTID}]'
+              delay: 1h
+              value_type: TEXT
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.selinux_status
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system'
+              tags:
+                - tag: Info
+                  value: 'SELinux Status'
+                - tag: Source
+                  value: Patchmon
+            - uuid: 8aa688e6d47e4d909153bd10db71990f
+              name: 'Host {#PM_HOSTNAME} Installed Packages'
+              type: HTTP_AGENT
+              key: 'patchmon.host.stats[{#PM_HOSTID}]'
+              delay: 1h
+              authtype: BASIC
+              username: '{$PM_KEY}'
+              password: '{$PM_SECRET}'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - $.total_installed_packages
+                - type: DISCARD_UNCHANGED
+              timeout: 30s
+              url: '{$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats'
+              tags:
+                - tag: Info
+                  value: 'Installed Packages'
+                - tag: Source
+                  value: Patchmon
+          master_item:
+            key: patchmon.hosts.raw
+          lld_macro_paths:
+            - lld_macro: '{#PM_FRIENDLY}'
+              path: $.friendly_name
+            - lld_macro: '{#PM_GROUP}'
+              path: '$.host_groups[0].name'
+            - lld_macro: '{#PM_HOSTID}'
+              path: $.id
+            - lld_macro: '{#PM_HOSTNAME}'
+              path: $.hostname
+            - lld_macro: '{#PM_IP}'
+              path: $.ip
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.hosts[*]'
+      macros:
+        - macro: '{$PM_KEY}'
+          description: 'API user'
+        - macro: '{$PM_SECRET}'
+          description: 'API secret'
+        - macro: '{$PM_URL}'
+          description: 'PatchMon URL'

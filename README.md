@@ -46,9 +46,9 @@ prevent dashboard gaps when using larger time ranges.
 
 ### API endpoints used:
 
-GET {$PM_URL}/api/v1/api/hosts 
+GET {$PM_URL}/api/v1/api/hosts\
 GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations\
-GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info 
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info\
 GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system\
 GET {\$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats
 
@@ -132,9 +132,9 @@ para evitar lacunas em dashboards ao utilizar períodos de tempo maiores.
 
 ### Endpoints da API utilizados:
 
-GET {$PM_URL}/api/v1/api/hosts 
+GET {$PM_URL}/api/v1/api/hosts\
 GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations\
-GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info 
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info\
 GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system\
 GET {\$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats
 

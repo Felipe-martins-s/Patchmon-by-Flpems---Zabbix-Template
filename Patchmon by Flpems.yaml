@@ -102,7 +102,9 @@ zabbix_export:
                     - $.integrations.docker.containers_count
                   error_handler: CUSTOM_VALUE
                   error_handler_params: '-1'
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.integrations.raw[{#PM_HOSTID}]'
               tags:
@@ -127,7 +129,9 @@ zabbix_export:
                   parameters:
                     - 'true'
                     - Enabled
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.integrations.raw[{#PM_HOSTID}]'
               tags:
@@ -149,7 +153,9 @@ zabbix_export:
                     - $.integrations.docker.networks_count
                   error_handler: CUSTOM_VALUE
                   error_handler_params: '-1'
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.integrations.raw[{#PM_HOSTID}]'
               tags:
@@ -171,7 +177,9 @@ zabbix_export:
                     - $.integrations.docker.volumes_count
                   error_handler: CUSTOM_VALUE
                   error_handler_params: '-1'
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.integrations.raw[{#PM_HOSTID}]'
               tags:
@@ -210,7 +218,9 @@ zabbix_export:
                       var ver = data.os_version ? data.os_version : "";
                       
                       return os + (ver ? " " + ver : "");
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.info.raw[{#PM_HOSTID}]'
               tags:
@@ -243,7 +253,9 @@ zabbix_export:
                 - type: JSONPATH
                   parameters:
                     - $.kernel_version
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.system.raw[{#PM_HOSTID}]'
               tags:
@@ -260,7 +272,9 @@ zabbix_export:
                 - type: JSONPATH
                   parameters:
                     - $.outdated_packages
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1h
               master_item:
                 key: 'patchmon.host.stats.raw[{#PM_HOSTID}]'
               tags:
@@ -295,7 +309,9 @@ zabbix_export:
                   parameters:
                     - 'true'
                     - 'Reboot pending'
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.system.raw[{#PM_HOSTID}]'
               tags:
@@ -311,7 +327,9 @@ zabbix_export:
                 - type: JSONPATH
                   parameters:
                     - $.total_repos
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.stats.raw[{#PM_HOSTID}]'
               tags:
@@ -328,7 +346,9 @@ zabbix_export:
                 - type: JSONPATH
                   parameters:
                     - $.security_updates
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1h
               master_item:
                 key: 'patchmon.host.stats.raw[{#PM_HOSTID}]'
               tags:
@@ -384,7 +404,9 @@ zabbix_export:
                 - type: JSONPATH
                   parameters:
                     - $.total_installed_packages
-                - type: DISCARD_UNCHANGED
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
               master_item:
                 key: 'patchmon.host.stats.raw[{#PM_HOSTID}]'
               tags:

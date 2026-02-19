@@ -1,379 +1,478 @@
-English:
-# Patchmon by Flpems — Zabbix Template
+Patchmon by Flpems — Zabbix Template
 
-Zabbix template (exported for **Zabbix 7.4**) to collect **PatchMon** data via **HTTP Agent** and automatically create per-host items using **LLD (Low-Level Discovery)**.
+Zabbix template (exported for Zabbix 7.0+) to collect PatchMon data via HTTP Agent and automatically create per-host items using LLD (Low-Level Discovery).
 
-## Overview
+🇺🇸 English
+Overview
 
 The template queries PatchMon host endpoints and discovers hosts dynamically to collect:
 
-- Docker integration counters/status
-- System information (Kernel, SELinux, reboot pending)
-- Package statistics (installed, pending total updates, pending security updates, repositories)
-- OS/version (formatted via JavaScript preprocessing)
+Docker integration counters/status
 
-## Compatibility
+System information (Kernel, SELinux, reboot pending)
 
-- **Export format:** Zabbix **7.4**
-- **Collection method:** HTTP Agent with **Basic** authentication
-- **Default interval:** 1h (items and prototypes)
+Package statistics (installed, pending total updates, pending security updates, repositories)
 
-## Requirements
+OS/version (formatted via JavaScript preprocessing)
 
-1. PatchMon instance reachable from **Zabbix Server** or **Zabbix Proxy**.
-2. API credentials (key/user + secret).
-3. Outbound HTTP/HTTPS allowed from Zabbix to PatchMon (firewall/ACL).
-4. API endpoints used by this template:
-   - `GET {$PM_URL}/api/v1/api/hosts`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats`
+PatchMon API availability
 
-## Macros (required)
+Version 2 introduces an optimized Master + Dependent item architecture, reducing API calls and improving scalability.
+
+Compatibility
+
+Export format: Zabbix 7.0+
+
+Collection method: HTTP Agent (Master items) + Dependent items
+
+Hosts list interval: 1h
+
+Per-host RAW endpoints interval: 30m
+
+Requirements
+
+PatchMon instance reachable from Zabbix Server or Zabbix Proxy
+
+API credentials (key/user + secret)
+
+Outbound HTTP/HTTPS allowed from Zabbix to PatchMon
+
+API endpoints used by this template:
+
+GET {$PM_URL}/api/v1/api/hosts
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats
+
+Macros (required)
 
 Set these macros on the template (or override at host/host group level):
 
-- `{$PM_URL}`: PatchMon base URL (e.g. `https://patchmon.yourdomain.local`)
-- `{$PM_KEY}`: API user/key (used as **Basic Auth username**)
-- `{$PM_SECRET}`: API secret (used as **Basic Auth password**)
+{$PM_URL}    → PatchMon base URL
+{$PM_KEY}    → API user/key (Basic Auth username)
+{$PM_SECRET} → API secret (Basic Auth password)
 
-> Recommendations:
-> - Mark `{$PM_SECRET}` as **Secret** in Zabbix.
-> - Keep `{$PM_URL}` consistent (optionally without a trailing `/`).
 
-## How it works
+Recommendations:
 
-### Master item
+Mark {$PM_SECRET} as Secret in Zabbix
 
-- **PatchMon - Hosts list (raw)**
-  - Key: `patchmon.hosts.raw`
-  - Type: HTTP Agent (TEXT)
-  - URL: `{$PM_URL}/api/v1/api/hosts`
-  - Auth: Basic (`{$PM_KEY}` / `{$PM_SECRET}`)
-  - Interval: `1h`
+Keep {$PM_URL} consistent (optionally without trailing /)
 
-This item retrieves the full JSON payload containing the hosts list.
+How it works
+Master item (hosts list)
 
-### Discovery (LLD)
+PatchMon - Hosts list (raw)
+Key: patchmon.hosts.raw
+Type: HTTP Agent (TEXT)
+URL: {$PM_URL}/api/v1/api/hosts
+Auth: Basic ({$PM_KEY} / {$PM_SECRET})
+Interval: 1h
 
-- **PatchMon - Host discovery**
-  - Key: `patchmon.host.discovery`
-  - Type: **Dependent**
-  - Master item: `patchmon.hosts.raw`
-  - Preprocessing: JSONPath `$.hosts[*]`
-
-**Extracted LLD macros:**
-- `{#PM_HOSTID}` → `$.id`
-- `{#PM_HOSTNAME}` → `$.hostname`
-- `{#PM_IP}` → `$.ip`
-- `{#PM_FRIENDLY}` → `$.friendly_name`
-- `{#PM_GROUP}` → `$.host_groups[0].name` *(note: uses only the first array entry)*
-
-## Per-host items (prototypes)
-
-All prototypes run with default `1h` interval and `30s` timeout, using Basic Auth with `{$PM_KEY}` / `{$PM_SECRET}`.
-
-### Docker (endpoint `/integrations`)
-
-- **Docker Container Count**
-  - Key: `patchmon.host.dckcnt[{#PM_HOSTID}]`
-  - JSONPath: `$.integrations.docker.containers_count`
-
-- **Docker Integration Status**
-  - Key: `patchmon.host.dckint[{#PM_HOSTID}]`
-  - Type: TEXT
-  - JSONPath: `$.integrations.docker.enabled`
+Retrieves the full JSON payload containing the hosts list.
 
-- **Docker Networks Count**
-  - Key: `patchmon.host.dckntwcnt[{#PM_HOSTID}]`
-  - JSONPath: `$.integrations.docker.networks_count`
+Discovery (LLD)
 
-- **Docker Volumes Count**
-  - Key: `patchmon.host.dckvlcnt[{#PM_HOSTID}]`
-  - JSONPath: `$.integrations.docker.volumes_count`
+PatchMon - Host discovery
+Key: patchmon.host.discovery
+Type: Dependent
+Master item: patchmon.hosts.raw
+Preprocessing: JSONPath $.hosts[*]
 
-### System info (endpoints `/info` and `/system`)
+Extracted LLD macros:
 
-- **System OS/Version**
-  - Key: `patchmon.host.info[{#PM_HOSTID}]`
-  - Type: TEXT
-  - Preprocessing: JavaScript (concatenates `os_type` + `os_version`)
+{#PM_HOSTID} → $.id
 
-- **Kernel Version**
-  - Key: `patchmon.host.krnversion[{#PM_HOSTID}]`
-  - Type: TEXT
-  - JSONPath: `$.kernel_version`
+{#PM_HOSTNAME} → $.hostname
 
-- **SELinux Status**
-  - Key: `patchmon.host.selstatus[{#PM_HOSTID}]`
-  - Type: TEXT
-  - JSONPath: `$.selinux_status`
+{#PM_IP} → $.ip
 
-- **Reboot Status**
-  - Key: `patchmon.host.rbtstatus[{#PM_HOSTID}]`
-  - Type: TEXT
-  - JSONPath: `$.needs_reboot`
-  - STR_REPLACE:
-    - `false` → `No reboot pending`
-    - `true` → `Reboot pending`
+{#PM_FRIENDLY} → $.friendly_name
 
-### Package stats (endpoint `/stats`)
+Per-host items (v2 architecture)
 
-- **Installed Packages**
-  - Key: `patchmon.host.stats[{#PM_HOSTID}]`
-  - JSONPath: `$.total_installed_packages`
+For each discovered host, v2 creates four RAW master items (HTTP Agent, 30m):
 
-- **Pending Updates: Total**
-  - Key: `patchmon.host.pending_updates[{#PM_HOSTID}]`
-  - JSONPath: `$.outdated_packages`
+patchmon.host.info.raw
 
-- **Pending Updates: Security**
-  - Key: `patchmon.host.sec_updates[{#PM_HOSTID}]`
-  - JSONPath: `$.security_updates`
+patchmon.host.system.raw
 
-- **Total Repositories**
-  - Key: `patchmon.host.repos[{#PM_HOSTID}]`
-  - JSONPath: `$.total_repos`
+patchmon.host.stats.raw
 
-> Note: several items use `DISCARD_UNCHANGED` to reduce storage when values do not change.
+patchmon.host.integrations.raw
 
-## Triggers (prototypes)
+All other metrics are Dependent items, using:
 
-- **Security updates (HIGH)**
-  - Name: `{#PM_HOSTNAME} has more than 10 pending security updates`
-  - Expression:
-    - `last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10`
+JSONPath
 
-- **Total updates (AVERAGE)**
-  - Name: `{#PM_HOSTNAME} has more than 20 pending updates`
-  - Expression:
-    - `last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20`
-  - Dependency:
-    - Depends on the security-updates trigger (prevents duplicate alerting)
+JavaScript preprocessing
 
-## Installation
+DISCARD_UNCHANGED (where applicable)
 
-1. In Zabbix: **Data collection → Templates → Import**
-2. Import the template YAML.
-3. Open the imported template and set the macros:
-   - `{$PM_URL}`, `{$PM_KEY}`, `{$PM_SECRET}`
-4. Link the template to a host (you can use a “dummy” host just to run the checks).
-5. Wait for the first run of `patchmon.hosts.raw` and verify:
-   - **Latest data** shows JSON arriving
-   - **Discovery** created host prototypes and items
+This reduces the number of HTTP requests per host and improves performance.
 
-## Troubleshooting
+Docker (endpoint /integrations)
 
-- **No data on the master item**
-  - Validate `{$PM_URL}` and connectivity (DNS/routing/firewall)
-  - Confirm credentials (`{$PM_KEY}` / `{$PM_SECRET}`)
-  - Test `/api/v1/api/hosts` outside Zabbix
+Docker Container Count
+Key: patchmon.host.dckcnt[{#PM_HOSTID}]
+JSONPath: $.integrations.docker.containers_count
 
-- **Discovery not creating items**
-  - Check that the JSON includes `hosts` and that `$.hosts[*]` matches the payload
-  - If `host_groups` is empty, `{#PM_GROUP}` may be blank (discovery still works, but tags/labels may be impacted)
+Docker Integration Status
+Key: patchmon.host.dckint[{#PM_HOSTID}]
+Type: TEXT
+JSONPath: $.integrations.docker.enabled
 
-- **Preprocessing errors**
-  - Confirm expected fields exist (e.g. `kernel_version`, `needs_reboot`, `security_updates`, etc.)
-  - Adjust JSONPath if your PatchMon schema differs
+Docker Networks Count
+Key: patchmon.host.dckntwcnt[{#PM_HOSTID}]
+JSONPath: $.integrations.docker.networks_count
 
-## Security
+Docker Volumes Count
+Key: patchmon.host.dckvlcnt[{#PM_HOSTID}]
+JSONPath: $.integrations.docker.volumes_count
 
-- Do not store `{$PM_SECRET}` in plain text outside Zabbix.
-- Use a Zabbix Proxy if PatchMon is not directly reachable from the server.
+If Docker integration is disabled, items return -1 (custom error handler).
+Value map included:
 
-## Credits
+-1 → Integration disabled
 
-Template: **Patchmon by Flpems**
+System info (endpoints /info and /system)
 
-###########################################################################################################
+System OS/Version
+Key: patchmon.host.info[{#PM_HOSTID}]
+Type: TEXT
+Preprocessing: JavaScript (concatenates os_type + os_version)
 
-Português Brasil:
-# Patchmon by Flpems — Zabbix Template
+Kernel Version
+Key: patchmon.host.krnversion[{#PM_HOSTID}]
+JSONPath: $.kernel_version
 
-Template Zabbix (export **Zabbix 7.4**) para coletar informações do **PatchMon** via **HTTP Agent** e criar itens automaticamente por host usando **LLD (Low-Level Discovery)**.
+SELinux Status
+Key: patchmon.host.selstatus[{#PM_HOSTID}]
+JSONPath: $.selinux_status
 
-## Visão geral
+Reboot Status
+Key: patchmon.host.rbtstatus[{#PM_HOSTID}]
+JSONPath: $.needs_reboot
 
-O template consulta o endpoint de hosts do PatchMon e, a partir da lista retornada, descobre dinamicamente cada host para coletar:
+STR_REPLACE:
 
-- Contadores e status de integração Docker
-- Informações do sistema (Kernel, SELinux, reboot pendente)
-- Estatísticas de pacotes (instalados, atualizações pendentes totais e de segurança, repositórios)
-- OS/versão (formatado via JavaScript no preprocessing)
+false → No reboot pending
+true  → Reboot pending
 
-## Compatibilidade
+Package stats (endpoint /stats)
 
-- **Formato do export:** Zabbix **7.4**
-- **Tipo de coleta:** HTTP Agent (com autenticação **Basic**)
-- **Frequência padrão:** 1h (itens e protótipos)
+Installed Packages
+Key: patchmon.host.stats[{#PM_HOSTID}]
+JSONPath: $.total_installed_packages
 
-## Pré-requisitos
+Pending Updates: Total
+Key: patchmon.host.pending_updates[{#PM_HOSTID}]
+JSONPath: $.outdated_packages
 
-1. Instância do **PatchMon** acessível a partir do **Zabbix Server** ou **Zabbix Proxy**.
-2. Credenciais para API (usuário/chave e secret).
-3. Permissão de saída HTTP/HTTPS do Zabbix para o PatchMon (firewall/ACL).
-4. Endpoints da API disponíveis (conforme configurado no template):
-   - `GET {$PM_URL}/api/v1/api/hosts`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system`
-   - `GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats`
+Pending Updates: Security
+Key: patchmon.host.sec_updates[{#PM_HOSTID}]
+JSONPath: $.security_updates
 
-## Macros (obrigatórias)
+Total Repositories
+Key: patchmon.host.repos[{#PM_HOSTID}]
+JSONPath: $.total_repos
 
-Configure estas macros no template (ou em nível de host/host group, se preferir herança):
+Note: several items use DISCARD_UNCHANGED to reduce storage when values do not change.
 
-- `{$PM_URL}`: URL base do PatchMon (ex.: `https://patchmon.seudominio.local`)
-- `{$PM_KEY}`: API user / key (usado como **Basic Auth username**)
-- `{$PM_SECRET}`: API secret (usado como **Basic Auth password**)
+Triggers (prototypes)
 
-> Recomendações:
-> - Marque `{$PM_SECRET}` como **Secret** no Zabbix.
-> - Garanta que `{$PM_URL}` não termine com `/` (opcional, mas ajuda a padronizar).
+Security updates (HIGH)
 
-## Como o template funciona
+{#PM_HOSTNAME} has more than 10 pending security updates
 
-### Item mestre
+last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10
 
-- **PatchMon - Hosts list (raw)**
-  - Key: `patchmon.hosts.raw`
-  - Tipo: HTTP Agent (TEXT)
-  - URL: `{$PM_URL}/api/v1/api/hosts`
-  - Auth: Basic (`{$PM_KEY}` / `{$PM_SECRET}`)
-  - Intervalo: `1h`
 
-Este item retorna o JSON completo com a lista de hosts.
+Total updates (AVERAGE)
 
-### Discovery (LLD)
+{#PM_HOSTNAME} has more than 20 pending updates
 
-- **PatchMon - Host discovery**
-  - Key: `patchmon.host.discovery`
-  - Tipo: **Dependent**
-  - Master item: `patchmon.hosts.raw`
-  - Preprocessing: JSONPath `$.hosts[*]`
+last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20
 
-**Macros LLD extraídas:**
-- `{#PM_HOSTID}`  → `$.id`
-- `{#PM_HOSTNAME}` → `$.hostname`
-- `{#PM_IP}` → `$.ip`
-- `{#PM_FRIENDLY}` → `$.friendly_name`
-- `{#PM_GROUP}` → `$.host_groups[0].name` *(observação: usa apenas o primeiro grupo do array)*
 
-## Itens criados por host (protótipos)
+Dependency:
+Depends on the security-updates trigger.
 
-Todos com intervalo padrão `1h` e `timeout 30s`, usando Basic Auth com `{$PM_KEY}` / `{$PM_SECRET}`.
+API Availability (NEW in v2)
+Patchmon API availability: no data for 2h
 
-### Docker (endpoint `/integrations`)
+nodata(/Patchmon by Flpems/patchmon.hosts.raw,2h)=1
 
-- **Docker Container Count**
-  - Key: `patchmon.host.dckcnt[{#PM_HOSTID}]`
-  - JSONPath: `$.integrations.docker.containers_count`
+Installation
 
-- **Docker Integration Status**
-  - Key: `patchmon.host.dckint[{#PM_HOSTID}]`
-  - Tipo: TEXT
-  - JSONPath: `$.integrations.docker.enabled`
+Zabbix → Data collection → Templates → Import
 
-- **Docker Networks Count**
-  - Key: `patchmon.host.dckntwcnt[{#PM_HOSTID}]`
-  - JSONPath: `$.integrations.docker.networks_count`
+Import the template YAML
 
-- **Docker Volumes Count**
-  - Key: `patchmon.host.dckvlcnt[{#PM_HOSTID}]`
-  - JSONPath: `$.integrations.docker.volumes_count`
+Configure macros:
 
-### Info do sistema (endpoints `/info` e `/system`)
+{$PM_URL}
 
-- **System OS/Version**
-  - Key: `patchmon.host.info[{#PM_HOSTID}]`
-  - Tipo: TEXT
-  - Preprocessing: JavaScript (concatena `os_type` + `os_version`)
+{$PM_KEY}
 
-- **Kernel Version**
-  - Key: `patchmon.host.krnversion[{#PM_HOSTID}]`
-  - Tipo: TEXT
-  - JSONPath: `$.kernel_version`
+{$PM_SECRET}
 
-- **SELinux Status**
-  - Key: `patchmon.host.selstatus[{#PM_HOSTID}]`
-  - Tipo: TEXT
-  - JSONPath: `$.selinux_status`
+Link template to a host
 
-- **Reboot Status**
-  - Key: `patchmon.host.rbtstatus[{#PM_HOSTID}]`
-  - Tipo: TEXT
-  - JSONPath: `$.needs_reboot`
-  - STR_REPLACE:
-    - `false` → `No Reboot pending`
-    - `true`  → `Reboot pending`
+Wait for:
 
-### Estatísticas de pacotes (endpoint `/stats`)
+patchmon.hosts.raw to receive JSON
 
-- **Installed Packages**
-  - Key: `patchmon.host.stats[{#PM_HOSTID}]`
-  - JSONPath: `$.total_installed_packages`
+Discovery to create per-host items
 
-- **Pending Updates: Total**
-  - Key: `patchmon.host.pending_updates[{#PM_HOSTID}]`
-  - JSONPath: `$.outdated_packages`
+Security
 
-- **Pending Updates: Security**
-  - Key: `patchmon.host.sec_updates[{#PM_HOSTID}]`
-  - JSONPath: `$.security_updates`
+Do not store {$PM_SECRET} in plain text outside Zabbix
 
-- **Total Repos**
-  - Key: `patchmon.host.repos[{#PM_HOSTID}]`
-  - JSONPath: `$.total_repos`
+Use Zabbix Proxy if PatchMon is not directly reachable
 
-> Observação: vários itens aplicam `DISCARD_UNCHANGED`, reduzindo armazenamento quando não há mudança.
+Credits
 
-## Triggers (protótipos)
+Template: Patchmon by Flpems
+Version: v2
 
-- **Security updates (HIGH)**
-  - Nome: `{#PM_HOSTNAME} has more than 10 pending security updates`
-  - Expressão:
-    - `last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10`
+---
 
-- **Total updates (AVERAGE)**
-  - Nome: `{#PM_HOSTNAME} has more than 20 pending updates`
-  - Expressão:
-    - `last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20`
-  - Dependência:
-    - Depende do trigger de security updates (evita alertas duplicados)
+Patchmon by Flpems — Zabbix Template
 
-## Instalação
+Template Zabbix (exportado para Zabbix 7.0+) para coletar dados do PatchMon via HTTP Agent e criar automaticamente itens por host utilizando LLD (Low-Level Discovery).
 
-1. No Zabbix: **Data collection → Templates → Import**
-2. Importe o YAML do template.
-3. Abra o template importado e configure as macros:
-   - `{$PM_URL}`, `{$PM_KEY}`, `{$PM_SECRET}`
-4. Associe o template a um host (pode ser um host “dummy” apenas para rodar a coleta).
-5. Aguarde a primeira coleta do item `patchmon.hosts.raw` e verifique:
-   - Em **Latest data** se o JSON está chegando
-   - Em **Discovery** se os hosts foram descobertos e os itens criados
+🇧🇷 Português Brasil
+Visão Geral
 
-## Troubleshooting
+O template consulta os endpoints de hosts do PatchMon e descobre os hosts dinamicamente para coletar:
 
-- **Sem dados no item mestre**:
-  - Valide `{$PM_URL}` e conectividade (DNS/rota/firewall)
-  - Confirme credenciais (`{$PM_KEY}` / `{$PM_SECRET}`)
-  - Teste o endpoint `/api/v1/api/hosts` fora do Zabbix
+Contadores/status da integração Docker
 
-- **Discovery não cria itens**:
-  - Verifique se o JSON contém `hosts` e se o JSONPath `$.hosts[*]` faz sentido para o payload retornado
-  - Se `host_groups` vier vazio, `{#PM_GROUP}` pode ficar em branco (não impede discovery, mas afeta tags/uso)
+Informações de sistema (Kernel, SELinux, reboot pendente)
 
-- **Erros de preprocessing**:
-  - Confirme os campos esperados no JSON (ex.: `kernel_version`, `needs_reboot`, `security_updates`, etc.)
-  - Ajuste JSONPath caso sua versão do PatchMon mude o schema
+Estatísticas de pacotes (instalados, total de updates pendentes, updates de segurança pendentes, repositórios)
 
-## Segurança
+OS/versão (formatado via pré-processamento JavaScript)
 
-- Não armazene `{$PM_SECRET}` em texto plano fora do Zabbix.
-- Use proxy se o PatchMon não for acessível diretamente pelo server.
+Disponibilidade da API do PatchMon
 
-## Créditos
+A Versão 2 introduz uma arquitetura otimizada de itens Master + Dependent, reduzindo chamadas à API e melhorando a escalabilidade.
 
-Template: **Patchmon by Flpems**
+Compatibilidade
+
+Formato de exportação: Zabbix 7.0+
+
+Método de coleta: HTTP Agent (itens Master) + Itens Dependentes
+
+Intervalo da lista de hosts: 1h
+
+Intervalo dos endpoints RAW por host: 30m
+
+Requisitos
+
+Instância do PatchMon acessível a partir do Zabbix Server ou Zabbix Proxy
+
+Credenciais da API (key/usuário + secret)
+
+Saída HTTP/HTTPS liberada do Zabbix para o PatchMon
+
+Endpoints da API utilizados por este template:
+
+GET {$PM_URL}/api/v1/api/hosts
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/integrations
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/info
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/system
+GET {$PM_URL}/api/v1/api/hosts/{#PM_HOSTID}/stats
+
+Macros (obrigatórias)
+
+Configure estas macros no template (ou sobrescreva em nível de host/grupo de hosts):
+
+{$PM_URL} → URL base do PatchMon
+{$PM_KEY} → Usuário/key da API (username do Basic Auth)
+{$PM_SECRET} → Secret da API (senha do Basic Auth)
+
+Recomendações:
+
+Marque {$PM_SECRET} como Secret no Zabbix
+
+Mantenha {$PM_URL} consistente (opcionalmente sem / no final)
+
+Como funciona
+Item Master (lista de hosts)
+
+PatchMon - Hosts list (raw)
+Key: patchmon.hosts.raw
+Tipo: HTTP Agent (TEXT)
+URL: {$PM_URL}/api/v1/api/hosts
+Auth: Basic ({$PM_KEY} / {$PM_SECRET})
+Intervalo: 1h
+
+Recupera o payload JSON completo contendo a lista de hosts.
+
+Discovery (LLD)
+
+PatchMon - Host discovery
+Key: patchmon.host.discovery
+Tipo: Dependent
+Item master: patchmon.hosts.raw
+Pré-processamento: JSONPath $.hosts[*]
+
+Macros LLD extraídas:
+
+{#PM_HOSTID} → $.id
+
+{#PM_HOSTNAME} → $.hostname
+
+{#PM_IP} → $.ip
+
+{#PM_FRIENDLY} → $.friendly_name
+
+Itens por host (arquitetura v2)
+
+Para cada host descoberto, a v2 cria quatro itens master RAW (HTTP Agent, 30m):
+
+patchmon.host.info.raw
+
+patchmon.host.system.raw
+
+patchmon.host.stats.raw
+
+patchmon.host.integrations.raw
+
+Todas as demais métricas são Itens Dependentes, utilizando:
+
+JSONPath
+
+Pré-processamento JavaScript
+
+DISCARD_UNCHANGED (quando aplicável)
+
+Isso reduz o número de requisições HTTP por host e melhora a performance.
+
+Docker (endpoint /integrations)
+
+Quantidade de Containers Docker
+Key: patchmon.host.dckcnt[{#PM_HOSTID}]
+JSONPath: $.integrations.docker.containers_count
+
+Status da Integração Docker
+Key: patchmon.host.dckint[{#PM_HOSTID}]
+Tipo: TEXT
+JSONPath: $.integrations.docker.enabled
+
+Quantidade de Redes Docker
+Key: patchmon.host.dckntwcnt[{#PM_HOSTID}]
+JSONPath: $.integrations.docker.networks_count
+
+Quantidade de Volumes Docker
+Key: patchmon.host.dckvlcnt[{#PM_HOSTID}]
+JSONPath: $.integrations.docker.volumes_count
+
+Se a integração Docker estiver desabilitada, os itens retornam -1 (handler de erro customizado).
+
+Value map incluído:
+
+-1 → Integração desabilitada
+
+Informações de sistema (endpoints /info e /system)
+
+Sistema Operacional/Versão
+Key: patchmon.host.info[{#PM_HOSTID}]
+Tipo: TEXT
+Pré-processamento: JavaScript (concatena os_type + os_version)
+
+Versão do Kernel
+Key: patchmon.host.krnversion[{#PM_HOSTID}]
+JSONPath: $.kernel_version
+
+Status do SELinux
+Key: patchmon.host.selstatus[{#PM_HOSTID}]
+JSONPath: $.selinux_status
+
+Status de Reboot
+Key: patchmon.host.rbtstatus[{#PM_HOSTID}]
+JSONPath: $.needs_reboot
+
+STR_REPLACE:
+
+false → Sem reboot pendente
+true → Reboot pendente
+
+Estatísticas de pacotes (endpoint /stats)
+
+Pacotes Instalados
+Key: patchmon.host.stats[{#PM_HOSTID}]
+JSONPath: $.total_installed_packages
+
+Updates Pendentes: Total
+Key: patchmon.host.pending_updates[{#PM_HOSTID}]
+JSONPath: $.outdated_packages
+
+Updates Pendentes: Segurança
+Key: patchmon.host.sec_updates[{#PM_HOSTID}]
+JSONPath: $.security_updates
+
+Total de Repositórios
+Key: patchmon.host.repos[{#PM_HOSTID}]
+JSONPath: $.total_repos
+
+Observação: vários itens utilizam DISCARD_UNCHANGED para reduzir armazenamento quando os valores não mudam.
+
+Triggers (protótipos)
+
+Updates de segurança (HIGH)
+
+{#PM_HOSTNAME} possui mais de 10 updates de segurança pendentes
+
+last(/Patchmon by Flpems/patchmon.host.sec_updates[{#PM_HOSTID}])>=10
+
+Updates totais (AVERAGE)
+
+{#PM_HOSTNAME} possui mais de 20 updates pendentes
+
+last(/Patchmon by Flpems/patchmon.host.pending_updates[{#PM_HOSTID}])>=20
+
+Dependência:
+Depende do trigger de updates de segurança.
+
+Disponibilidade da API (NOVO na v2)
+
+Disponibilidade da API do PatchMon: sem dados por 2h
+
+nodata(/Patchmon by Flpems/patchmon.hosts.raw,2h)=1
+
+Instalação
+
+Zabbix → Data collection → Templates → Import
+
+Importe o YAML do template
+
+Configure as macros:
+
+{$PM_URL}
+
+{$PM_KEY}
+
+{$PM_SECRET}
+
+Vincule o template a um host
+
+Aguarde:
+
+patchmon.hosts.raw receber o JSON
+
+A discovery criar os itens por host
+
+Segurança
+
+Não armazene {$PM_SECRET} em texto plano fora do Zabbix
+
+Utilize Zabbix Proxy se o PatchMon não estiver diretamente acessível
+
+Créditos
+
+Template: Patchmon by Flpems
+Versão: v2
